@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packet Routing Simulator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .control-panel,
+        .info-panel {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .control-panel {
+            overflow-y: auto;
+        }
+
+        #network-diagram-container svg {
+            width: 100%;
+            height: auto;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background-color: #fff;
+        }
+
+        pre {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ced4da;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        h1,
+        h2,
+        h3,
+        h4 {
+            font-weight: 300;
+        }
+
+        h1 {
+            color: #007bff;
+        }
+
+        .form-label {
+            font-weight: 500;
+        }
+
+        .accordion-button {
+            font-weight: 500 !important;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="container-fluid my-4">
+        <div class="text-center mb-4">
+            <h1>Packet Routing Simulator</h1>
+            <p class="lead">A simplified demonstration of packet routing in a Software-Defined Network (SDN).</p>
+            <p class="text-muted small">
+                <a href="#" class="link-secondary text-decoration-none">Lakshya Dubey <strong>(2024BCS0339)</strong></a>
+                &middot;
+                <a href="#" class="link-secondary text-decoration-none">Armaan Z. Hussain
+                    <strong>(2024BCS0323)</strong></a> &middot;
+                <a href="#" class="link-secondary text-decoration-none">Kannabiran <strong>(2024BCS0215)</strong></a>
+                <a href="#" class="link-secondary text-decoration-none">Pranav Ranjan <strong>(2024BCS0331)</strong></a>
+            </p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                <div id="network-diagram-container" class="info-panel">
+                </div>
+                <div class="info-panel mt-4">
+                    <h3>Documentation</h3>
+                    <div class="accordion" id="documentationAccordion">
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseGuide" aria-expanded="true" aria-controls="collapseGuide">
+                                    Simulator Guide
+                                </button>
+                            </h2>
+                            <div id="collapseGuide" class="accordion-collapse collapse show"
+                                data-bs-parent="#documentationAccordion">
+                                <div class="accordion-body">
+                                    <p>This section explains how to use the simulator's interface and understand the
+                                        visualization.</p>
+                                    <h6>1. Define Network Edges</h6>
+                                    <p>The text area allows you to define the network's structure. Each line represents
+                                        a connection (an edge) between two routers in the format
+                                        <code>Source,Destination,Cost</code>. The "cost" is a number representing the
+                                        time or effort to send a packet across that link. The visualization will update
+                                        automatically as you type.</p>
+
+                                    <h6>2. Send a Packet</h6>
+                                    <p>Enter the starting router ID in the 'Source' field and the target router ID in
+                                        the 'Destination' field. Clicking "Send Packet" creates a new packet and places
+                                        it in the source router's queue to begin its journey.</p>
+
+                                    <h6>3. Control Simulation</h6>
+                                    <ul>
+                                        <li><strong>Reset Simulation:</strong> Clears all packets and resets the
+                                            simulation to its initial state based on the current network definition.
+                                        </li>
+                                        <li><strong>Speed Slider:</strong> Controls the speed of the simulation. Move it
+                                            to the left for faster ticks (less delay) or to the right for slower ticks
+                                            (more delay), allowing for easier observation.</li>
+                                    </ul>
+
+                                    <h6>4. The Visualization</h6>
+                                    <ul>
+                                        <li><span class="badge bg-primary">Blue Circles</span> represent the routers in
+                                            the network.</li>
+                                        <li><span class="badge bg-secondary">Grey Lines</span> represent the connections
+                                            between routers, with the associated cost displayed in the middle.</li>
+                                        <li><span class="badge" style="background-color: #ff9800;">Orange Circles</span>
+                                            are active packets waiting in a router's queue.</li>
+                                        <li><span class="badge" style="background-color: #e67e22;">Dark Orange
+                                                Circles</span> are packets currently in transit between two routers.
+                                        </li>
+                                        <li><span class="badge" style="background-color: #2ecc71;">Green Circles</span>
+                                            are packets that have successfully reached their destination.</li>
+                                    </ul>
+
+                                    <h6>5. Forwarding Table</h6>
+                                    <p>This is the "brain" of each router. Use the dropdown to select a router. The box
+                                        below will display its forwarding table, which tells the router the next
+                                        immediate hop for any given destination. For example, if Router A's table says
+                                        <code>{"F": "C"}</code>, it means "to get to F, send the packet to C next."
+                                        These tables are calculated by the central Network Controller using Dijkstra's
+                                        algorithm.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapseComponents" aria-expanded="false"
+                                    aria-controls="collapseComponents">
+                                    Code Components
+                                </button>
+                            </h2>
+                            <div id="collapseComponents" class="accordion-collapse collapse"
+                                data-bs-parent="#documentationAccordion">
+                                <div class="accordion-body">
+                                    <p>This simulation is built on three core classes that model the behavior of a
+                                        network.</p>
+                                    <h6>1. Packet Class</h6>
+                                    <p>The fundamental unit of data. The source system breaks long messages into smaller
+                                        packets, each containing control information (like source and destination
+                                        addresses) and a payload (the actual data).</p>
+
+                                    <h6>2. Router Class</h6>
+                                    <p>A networking device that forwards data packets. In this simulation, each router
+                                        uses a pre-computed <strong>Forwarding Table</strong> to decide the next hop for
+                                        a packet based on its final destination.</p>
+
+                                    <h6>3. Network Class (SDN Controller)</h6>
+                                    <p>Acts as a centralized <strong>Software-Defined Networking (SDN)
+                                            Controller</strong>. It has a global view of the entire network topology.
+                                        Its primary job is to run Dijkstra's algorithm to compute the shortest path
+                                        between all nodes, generate a forwarding table for each router, and distribute
+                                        those tables. This separates the complex path-finding logic from the simple
+                                        forwarding task performed by the routers.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div class="control-panel">
+                    <div class="mb-4">
+                        <label for="edgeInput" class="form-label">
+                            <h4>1. Define Network Edges</h4>
+                        </label>
+                        <textarea id="edgeInput" class="form-control" rows="7">A,B,4
+A,C,2
+B,D,5
+C,D,8
+D,E,2
+D,F,6
+E,F,3</textarea>
+                        <div class="form-text">Enter edges as `Source,Destination,Cost` on separate lines.</div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4>2. Send a Packet</h4>
+                        <form id="packet-form" class="row g-2 align-items-end">
+                            <div class="col-auto">
+                                <label for="source-node" class="form-label">Source</label>
+                                <input type="text" id="source-node" class="form-control" value="A" style="width: 80px;">
+                            </div>
+                            <div class="col-auto">
+                                <label for="dest-node" class="form-label">Destination</label>
+                                <input type="text" id="dest-node" class="form-control" value="F" style="width: 80px;">
+                            </div>
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary">Send Packet</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4>3. Control Simulation</h4>
+                        <div class="d-flex align-items-center">
+                            <button id="resetButton" class="btn btn-danger me-3">Reset</button>
+                            <label for="simulationSpeed" class="form-label me-2 mb-0 text-nowrap">Speed
+                                (ms/tick):</label>
+                            <input type="range" id="simulationSpeed" class="form-range" min="100" max="2000" step="100"
+                                value="1000">
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <h4>4. Forwarding Table</h4>
+                        <div class="input-group">
+                            <label class="input-group-text" for="selectedRouter">Inspect Router:</label>
+                            <select id="selectedRouter" class="form-select"></select>
+                        </div>
+                        <pre id="forwarding-table-display" class="mt-2">{}</pre>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="text-center mt-5 py-4 border-top">
+        <div class="container">
+            <p class="text-muted mb-1">Developed by <strong>Group 6 (IIIT Kottayam)</strong></p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz"
+        crossorigin="anonymous"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // --- CLASSES (Copied from Observable) ---
+            class Packet {
+                constructor(src, dst, pkt_id) {
+                    this.src = src;
+                    this.dst = dst;
+                    this.pkt_id = pkt_id;
+                    this.path = [src];
+                    this.ttl = 64;
+                    this.timeStamp = Date.now();
+                    this.status = 'active';
+                }
+                decrementTTL() {
+                    this.ttl--;
+                    return this.ttl > 0;
+                }
+            }
+
+            class Router {
+                constructor(id) {
+                    this.id = id;
+                    this.packetQueue = [];
+                    this.forwardingTable = {};
+                    this.neighbors = new Map();
+                }
+                receivePacket(packet) {
+                    this.packetQueue.push(packet);
+                }
+                setForwardingTable(table) {
+                    this.forwardingTable = table;
+                }
+                processQueue() {
+                    if (this.packetQueue.length === 0) return null;
+                    const packet = this.packetQueue.shift();
+                    if (!packet.decrementTTL()) return { packet, status: 'dropped' };
+                    if (this.id === packet.dst) {
+                        packet.path.push(this.id);
+                        return { packet, status: 'arrived' };
+                    }
+                    const nextHopId = this.forwardingTable[packet.dst];
+                    if (nextHopId) {
+                        packet.path.push(this.id);
+                        return {
+                            packet,
+                            status: 'forward',
+                            nextHopId,
+                            cost: this.neighbors.get(nextHopId)
+                        };
+                    }
+                    return { packet, status: 'dropped' };
+                }
+            }
+
+            class Network {
+                constructor() {
+                    this.routers = new Map();
+                }
+                addRouter(routerId) {
+                    const router = new Router(routerId);
+                    this.routers.set(routerId, router);
+                }
+                getRouter(routerId) {
+                    return this.routers.get(routerId);
+                }
+                addEdge(routerId1, routerId2, cost) {
+                    const router1 = this.getRouter(routerId1);
+                    const router2 = this.getRouter(routerId2);
+                    if (router1 && router2) {
+                        router1.neighbors.set(routerId2, cost);
+                        router2.neighbors.set(routerId1, cost);
+                    }
+                }
+                dijkstra(startId) {
+                    const costs = {};
+                    const predecessors = {};
+                    const visited = new Set();
+                    const pq = new Map();
+                    for (const routerId of this.routers.keys()) {
+                        costs[routerId] = Infinity;
+                        predecessors[routerId] = null;
+                    }
+                    costs[startId] = 0;
+                    pq.set(startId, 0);
+                    while (pq.size > 0) {
+                        const currentId = [...pq.entries()].sort((a, b) => a[1] - b[1])[0][0];
+                        pq.delete(currentId);
+                        if (visited.has(currentId)) continue;
+                        visited.add(currentId);
+                        const currentRouter = this.getRouter(currentId);
+                        for (const [neighborId, cost] of currentRouter.neighbors.entries()) {
+                            const newCost = costs[currentId] + cost;
+                            if (newCost < costs[neighborId]) {
+                                costs[neighborId] = newCost;
+                                predecessors[neighborId] = currentId;
+                                pq.set(neighborId, newCost);
+                            }
+                        }
+                    }
+                    const allPaths = {};
+                    for (const routerId of this.routers.keys()) {
+                        let path = [];
+                        let current = routerId;
+                        while (current !== null) {
+                            path.unshift(current);
+                            current = predecessors[current];
+                        }
+                        if (path[0] === startId) {
+                            allPaths[routerId] = { path, cost: costs[routerId] };
+                        }
+                    }
+                    return allPaths;
+                }
+                computeAllPaths() {
+                    for (const routerId of this.routers.keys()) {
+                        const paths = this.dijkstra(routerId);
+                        const forwardingTable = {};
+                        for (const destId in paths) {
+                            if (destId !== routerId && paths[destId].path.length > 1) {
+                                forwardingTable[destId] = paths[destId].path[1];
+                            }
+                        }
+                        this.getRouter(routerId).setForwardingTable(forwardingTable);
+                    }
+                }
+            }
+
+            // --- GLOBAL STATE AND CONSTANTS ---
+            const routerPositions = {
+                A: { x: 50, y: 150 }, B: { x: 200, y: 50 }, C: { x: 200, y: 250 },
+                D: { x: 400, y: 150 }, E: { x: 550, y: 50 }, F: { x: 550, y: 250 },
+            };
+            let network = new Network();
+            let simulationState = getInitialState();
+            let simulationInterval = null;
+
+            // --- DOM ELEMENT REFERENCES ---
+            const edgeInput = document.getElementById('edgeInput');
+            const packetForm = document.getElementById('packet-form');
+            const sourceNodeInput = document.getElementById('source-node');
+            const destNodeInput = document.getElementById('dest-node');
+            const resetButton = document.getElementById('resetButton');
+            const speedSlider = document.getElementById('simulationSpeed');
+            const routerSelect = document.getElementById('selectedRouter');
+            const tableDisplay = document.getElementById('forwarding-table-display');
+            const vizContainer = document.getElementById('network-diagram-container');
+
+            // --- HELPER FUNCTIONS ---
+            function getInitialState() {
+                return {
+                    activePackets: new Map(),
+                    packetsInTransit: [],
+                    packetCounter: 0,
+                    tickCounter: 0,
+                };
+            }
+
+            function createNetworkFromInput() {
+                const newNetwork = new Network();
+                const edges = edgeInput.value.trim().split('\n').map(line => line.split(','));
+                const routerIds = new Set(edges.flatMap(edge => [edge[0], edge[1]]));
+
+                routerIds.forEach(id => newNetwork.addRouter(id));
+                edges.forEach(([source, dest, cost]) => {
+                    if (source && dest && cost) {
+                        newNetwork.addEdge(source.trim(), dest.trim(), parseInt(cost, 10));
+                    }
+                });
+
+                newNetwork.computeAllPaths();
+                return newNetwork;
+            }
+
+            function updateRouterSelect() {
+                const currentSelection = routerSelect.value;
+                routerSelect.innerHTML = '';
+                const routerIds = Array.from(network.routers.keys()).sort();
+                routerIds.forEach(id => {
+                    const option = document.createElement('option');
+                    option.value = id;
+                    option.textContent = id;
+                    routerSelect.appendChild(option);
+                });
+                if (routerIds.includes(currentSelection)) {
+                    routerSelect.value = currentSelection;
+                }
+                updateForwardingTableDisplay();
+            }
+
+            function updateForwardingTableDisplay() {
+                const selectedId = routerSelect.value;
+                const router = network.getRouter(selectedId);
+                if (router) {
+                    tableDisplay.textContent = JSON.stringify(router.forwardingTable, null, 2);
+                } else {
+                    tableDisplay.textContent = '{}';
+                }
+            }
+
+            function resetSimulation() {
+                simulationState = getInitialState();
+                network = createNetworkFromInput();
+                network.routers.forEach(router => router.packetQueue = []);
+                updateRouterSelect();
+                renderNetwork();
+            }
+
+            // --- SIMULATION ENGINE ---
+            function simulationTick() {
+                const now = ++simulationState.tickCounter;
+
+                // 1. Check for packets arriving from transit
+                const stillInTransit = [];
+                for (const transit of simulationState.packetsInTransit) {
+                    if (now >= transit.arrivalTime) {
+                        network.getRouter(transit.nextHopId)?.receivePacket(transit.packet);
+                    } else {
+                        stillInTransit.push(transit);
+                    }
+                }
+                simulationState.packetsInTransit = stillInTransit;
+
+                // 2. Process all router queues
+                network.routers.forEach(router => {
+                    const decision = router.processQueue();
+                    if (decision) {
+                        if (decision.status === 'forward') {
+                            simulationState.packetsInTransit.push({
+                                packet: decision.packet,
+                                nextHopId: decision.nextHopId,
+                                departureTime: now,
+                                arrivalTime: now + decision.cost,
+                            });
+                        } else if (decision.status === 'arrived') {
+                            decision.packet.status = 'arrived';
+                        } else if (decision.status === 'dropped') {
+                            simulationState.activePackets.delete(decision.packet.pkt_id);
+                        }
+                    }
+                });
+
+                renderNetwork();
+            }
+
+            function startSimulation() {
+                if (simulationInterval) clearInterval(simulationInterval);
+                const speed = parseInt(speedSlider.value, 10);
+                simulationInterval = setInterval(simulationTick, speed);
+            }
+
+            // --- D3 RENDERING ---
+            function renderNetwork() {
+                const width = 650;
+                const height = 400;
+                const routerRadius = 20;
+                const packetRadius = 8;
+
+                d3.select(vizContainer).select("svg").remove();
+                const svg = d3.select(vizContainer).append("svg")
+                    .attr("viewBox", `0 0 ${width} ${height}`);
+
+                // 1. Draw Edges and Costs
+                network.routers.forEach(router => {
+                    const pos1 = routerPositions[router.id];
+                    if (!pos1) return;
+                    router.neighbors.forEach((cost, neighborId) => {
+                        const pos2 = routerPositions[neighborId];
+                        if (!pos2) return;
+                        if (router.id < neighborId) {
+                            svg.append("line")
+                                .attr("x1", pos1.x).attr("y1", pos1.y).attr("x2", pos2.x).attr("y2", pos2.y)
+                                .attr("stroke", "#ccc").attr("stroke-width", 2);
+                            const midX = (pos1.x + pos2.x) / 2;
+                            const midY = (pos1.y + pos2.y) / 2;
+                            svg.append("rect").attr("x", midX - 8).attr("y", midY - 8)
+                                .attr("width", 16).attr("height", 16).attr("fill", "white");
+                            svg.append("text").attr("x", midX).attr("y", midY)
+                                .attr("text-anchor", "middle").attr("dominant-baseline", "middle")
+                                .attr("font-size", "10px").attr("font-weight", "bold").attr("fill", "#555").text(cost);
+                        }
+                    });
+                });
+
+                // 2. Draw Routers
+                network.routers.forEach(router => {
+                    const pos = routerPositions[router.id];
+                    if (!pos) return;
+                    svg.append("circle").attr("cx", pos.x).attr("cy", pos.y)
+                        .attr("r", routerRadius).attr("fill", "steelblue");
+                    svg.append("text").attr("x", pos.x).attr("y", pos.y)
+                        .attr("text-anchor", "middle").attr("dominant-baseline", "central").attr("fill", "white")
+                        .attr("font-weight", "bold").text(router.id);
+                });
+
+                // 3. Draw Packets at Routers
+                const packetsAtRouters = new Map();
+                simulationState.activePackets.forEach(packet => {
+                    const lastHop = packet.path[packet.path.length - 1];
+                    const isPacketInTransit = simulationState.packetsInTransit.some(t => t.packet.pkt_id === packet.pkt_id);
+                    if (!isPacketInTransit) {
+                        if (!packetsAtRouters.has(lastHop)) packetsAtRouters.set(lastHop, []);
+                        packetsAtRouters.get(lastHop).push(packet);
+                    }
+                });
+
+                packetsAtRouters.forEach((packets, routerId) => {
+                    const routerPos = routerPositions[routerId];
+                    if (!routerPos) return;
+                    packets.forEach((packet, index) => {
+                        const offsetX = routerRadius + packetRadius + (index * (packetRadius / 2));
+                        const offsetY = -routerRadius + (index * (packetRadius * 1.5));
+                        const fillColor = packet.status === 'arrived' ? '#2ecc71' : '#ff9800';
+                        svg.append("circle").attr("cx", routerPos.x + offsetX).attr("cy", routerPos.y + offsetY)
+                            .attr("r", packetRadius).attr("fill", fillColor).attr("stroke", "white");
+                        svg.append("text").attr("x", routerPos.x + offsetX + packetRadius + 2)
+                            .attr("y", routerPos.y + offsetY + (packetRadius / 2))
+                            .attr("font-size", "8px").attr("fill", "#333").text(packet.pkt_id);
+                    });
+                });
+
+                // 4. Draw Packets in Transit
+                const now = simulationState.tickCounter;
+                simulationState.packetsInTransit.forEach(transit => {
+                    const sourceRouterId = transit.packet.path[transit.packet.path.length - 1];
+                    const sourcePos = routerPositions[sourceRouterId];
+                    const destPos = routerPositions[transit.nextHopId];
+                    if (!sourcePos || !destPos) return;
+                    const travelDuration = transit.arrivalTime - transit.departureTime;
+                    const timeElapsed = now - transit.departureTime;
+                    const progress = Math.min(timeElapsed / travelDuration, 1.0);
+                    const packetX = sourcePos.x + (destPos.x - sourcePos.x) * progress;
+                    const packetY = sourcePos.y + (destPos.y - sourcePos.y) * progress;
+                    svg.append("circle").attr("cx", packetX).attr("cy", packetY)
+                        .attr("r", 8).attr("fill", "#e67e22").attr("stroke", "white");
+                });
+            }
+
+            // --- EVENT LISTENERS ---
+            edgeInput.addEventListener('input', () => {
+                resetSimulation();
+            });
+
+            packetForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const src = sourceNodeInput.value.toUpperCase().trim();
+                const dst = destNodeInput.value.toUpperCase().trim();
+                const srcRouter = network.getRouter(src);
+
+                if (srcRouter && network.getRouter(dst)) {
+                    simulationState.packetCounter++;
+                    const newId = `P${simulationState.packetCounter}`;
+                    const packet = new Packet(src, dst, newId);
+                    srcRouter.receivePacket(packet);
+                    simulationState.activePackets.set(packet.pkt_id, packet);
+                    renderNetwork();
+                } else {
+                    alert('Invalid source or destination router ID.');
+                }
+            });
+
+            resetButton.addEventListener('click', () => {
+                resetSimulation();
+            });
+
+            speedSlider.addEventListener('input', () => {
+                startSimulation();
+            });
+
+            routerSelect.addEventListener('change', updateForwardingTableDisplay);
+
+            // --- INITIALIZATION ---
+            resetSimulation();
+            startSimulation();
+        });
+    </script>
+</body>
+
+</html>
