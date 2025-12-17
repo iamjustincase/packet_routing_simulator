@@ -50,9 +50,17 @@ A simplified, interactive demonstration of packet routing in a Software-Defined 
 
 ## Authors
 
-**Group 6 (IIIT Kottayam)**
+**Group 6**
 
-*   Lakshya Dubey (2024BCS0339)
-*   Armaan Z. Hussain (2024BCS0323)
-*   Kannabiran (2024BCS0215)
-*   Pranav Ranjan (2024BCS0331)
+*   **Armaan Z. Hussain** (Initial Developer & Visualization Architect)
+    *   Prototyped initial routing algorithms and graph logic using Python (NetworkX & Matplotlib).
+    *   Designed and implemented the interactive D3.js network visualization engine.
+    *   Provided reference logic for the web-based simulation architecture.
+*   Lakshya Dubey
+*   Kannabiran 
+*   Pranav Ranjan 
+
+## Live Demo
+
+[Packet Routing Simulator Live Demo]
+(https://iamjustincase.github.io/packet_routing_simulator/)
