@@ -1,3 +1,8 @@
+## Live Demo
+
+[Packet Routing Simulator Live Demo]
+https://iamjustincase.github.io/packet_routing_simulator
+
 # Packet Routing Simulator
 
 **DSA Project: Packet Routing Simulator using D3.js**
@@ -60,7 +65,3 @@ A simplified, interactive demonstration of packet routing in a Software-Defined 
 *   Kannabiran 
 *   Pranav Ranjan 
 
-## Live Demo
-
-[Packet Routing Simulator Live Demo]
-(https://iamjustincase.github.io/packet_routing_simulator/)
